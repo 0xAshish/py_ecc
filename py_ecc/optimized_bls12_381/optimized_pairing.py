@@ -1,13 +1,5 @@
 from __future__ import absolute_import
 
-from py_ecc.typing import (
-    Optimized_Field,
-    Optimized_FQPoint3D,
-    Optimized_FQ2Point3D,
-    Optimized_Point2D,
-    Optimized_Point3D,
-)
-
 from .optimized_curve import (
     double,
     add,
@@ -22,39 +14,36 @@ from .optimized_curve import (
     normalize,
 )
 from .optimized_field_elements import (
+    FQ12,
     field_modulus,
     FQ,
-    FQ12,
-    FQP,
 )
 
 
-ate_loop_count = 29793968203157093288
-log_ate_loop_count = 63
+ate_loop_count = 15132376222941642752
+log_ate_loop_count = 62
 pseudo_binary_encoding = [
-    0, 0, 0, 1, 0, 1, 0, -1, 0, 0, 1, -1, 0, 0, 1, 0,
-    0, 1, 1, 0, -1, 0, 0, 1, 0, -1, 0, 0, 0, 0, 1, 1,
-    1, 0, 0, -1, 0, 0, 1, 0, 0, 0, 0, 0, -1, 0, 0, 1,
-    1, 0, 0, -1, 0, 0, 0, 1, 1, 0, -1, 0, 0, 1, 0, 1, 1,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 1, 1
 ]
 
 
 assert sum([e * 2**i for i, e in enumerate(pseudo_binary_encoding)]) == ate_loop_count
 
 
-def normalize1(p: Optimized_Point3D[Optimized_Field]) -> Optimized_Point3D[Optimized_Field]:
+def normalize1(p):
     x, y = normalize(p)
 
-    return x, y, type(x).one()
+    return x, y, x.__class__.one()
 
 
 # Create a function representing the line between P1 and P2,
 # and evaluate it at T. Returns a numerator and a denominator
 # to avoid unneeded divisions
-def linefunc(P1: Optimized_Point3D[Optimized_Field],
-             P2: Optimized_Point3D[Optimized_Field],
-             T: Optimized_Point3D[Optimized_Field]) -> Optimized_Point2D[Optimized_Field]:
-    zero = type(P1[0]).zero()
+def linefunc(P1, P2, T):
+    zero = P1[0].__class__.zero()
     x1, y1, z1 = P1
     x2, y2, z2 = P2
     xt, yt, zt = T
@@ -77,7 +66,7 @@ def linefunc(P1: Optimized_Point3D[Optimized_Field],
         return xt * z1 - x1 * zt, z1 * zt
 
 
-def cast_point_to_fq12(pt: Optimized_Point3D[FQ]) -> Optimized_Point3D[FQ12]:
+def cast_point_to_fq12(pt):
     if pt is None:
         return None
     x, y, z = pt
@@ -106,20 +95,17 @@ assert linefunc(one, one, negtwo)[0] == FQ(0)
 
 
 # Main miller loop
-def miller_loop(Q: Optimized_Point3D[FQP],
-                P: Optimized_Point3D[FQP],
-                final_exponentiate: bool=True) -> FQP:
+def miller_loop(Q, P, final_exponentiate=True):
     if Q is None or P is None:
         return FQ12.one()
-    R = Q  # type: Optimized_Point3D[FQP]
+    R = Q
     f_num, f_den = FQ12.one(), FQ12.one()
     # for i in range(log_ate_loop_count, -1, -1):
-    for v in pseudo_binary_encoding[63::-1]:
+    for v in pseudo_binary_encoding[62::-1]:
         _n, _d = linefunc(R, R, P)
         f_num = f_num * f_num * _n
         f_den = f_den * f_den * _d
         R = double(R)
-        # if ate_loop_count & (2**i):
         if v == 1:
             _n, _d = linefunc(R, Q, P)
             f_num = f_num * _n
@@ -132,14 +118,15 @@ def miller_loop(Q: Optimized_Point3D[FQP],
             f_den = f_den * _d
             R = add(R, nQ)
     # assert R == multiply(Q, ate_loop_count)
-    Q1 = (Q[0] ** field_modulus, Q[1] ** field_modulus, Q[2] ** field_modulus)
+    # Q1 = (Q[0] ** field_modulus, Q[1] ** field_modulus, Q[2] ** field_modulus)
     # assert is_on_curve(Q1, b12)
-    nQ2 = (Q1[0] ** field_modulus, -Q1[1] ** field_modulus, Q1[2] ** field_modulus)
+    # nQ2 = (Q1[0] ** field_modulus, -Q1[1] ** field_modulus, Q1[2] ** field_modulus)
     # assert is_on_curve(nQ2, b12)
-    _n1, _d1 = linefunc(R, Q1, P)
-    R = add(R, Q1)
-    _n2, _d2 = linefunc(R, nQ2, P)
-    f = f_num * _n1 * _n2 / (f_den * _d1 * _d2)
+    # _n1, _d1 = linefunc(R, Q1, P)
+    # R = add(R, Q1)
+    # _n2, _d2 = linefunc(R, nQ2, P)
+    # f = f_num * _n1 * _n2 / (f_den * _d1 * _d2)
+    f = f_num / f_den
     # R = add(R, nQ2) This line is in many specifications but it technically does nothing
     if final_exponentiate:
         return f ** ((field_modulus ** 12 - 1) // curve_order)
@@ -148,13 +135,13 @@ def miller_loop(Q: Optimized_Point3D[FQP],
 
 
 # Pairing computation
-def pairing(Q: Optimized_FQ2Point3D, P: Optimized_FQPoint3D, final_exponentiate: bool=True) -> FQP:
+def pairing(Q, P, final_exponentiate=True):
     assert is_on_curve(Q, b2)
     assert is_on_curve(P, b)
-    if P[-1] == (type(P[-1]).zero()) or Q[-1] == (type(Q[-1]).zero()):
+    if P[-1] == P[-1].__class__.zero() or Q[-1] == Q[-1].__class__.zero():
         return FQ12.one()
     return miller_loop(twist(Q), cast_point_to_fq12(P), final_exponentiate=final_exponentiate)
 
 
-def final_exponentiate(p: Optimized_Field) -> Optimized_Field:
+def final_exponentiate(p):
     return p ** ((field_modulus ** 12 - 1) // curve_order)

@@ -1,13 +1,13 @@
 from __future__ import absolute_import
 
-from .optimized_field_elements import (  # noqa: F401
+from .bls12_381_field_elements import (  # noqa: F401
     field_modulus,
     FQ,
     FQP,
     FQ2,
     FQ12,
 )
-from .optimized_curve import (  # noqa: F401
+from .bls12_381_curve import (  # noqa: F401
     add,
     double,
     multiply,
@@ -25,9 +25,8 @@ from .optimized_curve import (  # noqa: F401
     Z1,
     Z2,
     G12,
-    normalize,
 )
-from .optimized_pairing import (  # noqa: F401
+from .bls12_381_pairing import (  # noqa: F401
     pairing,
     final_exponentiate,
 )
