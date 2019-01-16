@@ -7,11 +7,12 @@ def testKeyAggregation():
     privKey2 = 35
     privKey3 = 37
 
-    privKey4 = 95
+    privKey4 = privKey1 + privKey2 + privKey3
 
     pubKey1 = multiply(G2, privKey1)
     pubKey2 = multiply(G2, privKey2)
     pubKey3 = multiply(G2, privKey3)
+
 
     pubKey4 = multiply(G2, privKey4)
 
@@ -30,9 +31,12 @@ def testKeyAggregation():
 
     pairing1 = pairing(pubKeyAgg, H)
     pairing2 = pairing(G2, aggSign)
+    assert pairing1 == pairing2  # test sign Aggregation
+
     pairing3 = pairing(G2, sign4)
-    assert pairing1 == pairing2
-    assert pairing1 != pairing3
+    assert sign4 == aggSign  # test privkey Aggregation
+
+    assert pairing1 == pairing3
     print("yey")
 
 testKeyAggregation()
