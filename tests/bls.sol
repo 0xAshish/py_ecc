@@ -8,14 +8,51 @@ Code is based on https://github.com/jstoxrocky/zksnarks_example
 */
 
 contract BLSExample {
+
     struct G1Point {
         uint X;
         uint Y;
     }
+
     // Encoding of field elements is: X[0] * z + X[1]
     struct G2Point {
         uint[2] X;
         uint[2] Y;
+    }
+
+    struct Validator {
+        address user;
+        uint256 amount;
+        G1Point pubkey;
+    }
+
+    uint256 public vCount = 0;
+    mapping (uint256 => Validator) public validators;
+
+    function addValidator(uint256 amount, uint256 _pk) public {
+        for(uint256 i=0;i<100;i++){
+         vCount++;
+         G1Point pk = hashToG1(_pk+i)
+         validators[vCount] = Validator(msg.sender,amount, G1Point(x,y));
+        }
+    }
+
+    function checkSigAGG(uint256 bitmask, uint256[] sigs, uint256 message) public returns(bool) {
+        G1Point pubkey;
+
+        for(uint256 i = 0; i <vCount; i++){
+            if((num >> i) & 1 > 0) {
+                emit yo(i);
+                Validator v = validators[i+1];
+                pubkey += v.pubkey
+            }
+        }
+
+        G2Point memory h = hashToG2(message);
+        G2Point signature = G2Point(sigs);
+
+        return pairing2(negate(pubkey), P2(), h, signature);
+
     }
 
     /// @return the generator of G1
@@ -192,7 +229,8 @@ contract BLSExample {
     /// @return the negation of p, i.e. p.add(p.negate()) should be zero.
     function negate(G1Point p) internal returns (G1Point) {
         // The prime q in the base field F_q for G1
-        uint q = 21888242871839275222246405745257275088548364400416034343698204186575808495617;
+//        21888242871839275222246405745257275088696311157297823662689037894645226208583
+        uint q = 21888242871839275222246405745257275088696311157297823662689037894645226208583;
         if (p.X == 0 && p.Y == 0)
             return G1Point(0, 0);
         return G1Point(p.X, q - (p.Y % q));
