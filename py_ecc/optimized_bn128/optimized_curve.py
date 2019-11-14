@@ -1,15 +1,13 @@
 from __future__ import absolute_import
 
-from typing import (
-    cast,
+from py_ecc.fields import (
+    optimized_bn128_FQ as FQ,
+    optimized_bn128_FQP as FQP,
+    optimized_bn128_FQ2 as FQ2,
+    optimized_bn128_FQ12 as FQ12,
 )
-
-from .optimized_field_elements import (
-    field_modulus,
-    FQ,
-    FQ2,
-    FQ12,
-    FQP,
+from py_ecc.fields.field_properties import (
+    field_properties,
 )
 
 from py_ecc.typing import (
@@ -19,6 +17,7 @@ from py_ecc.typing import (
 )
 
 
+field_modulus = field_properties["bn128"]["field_modulus"]
 curve_order = 21888242871839275222246405745257275088548364400416034343698204186575808495617
 
 # Curve order should be prime
@@ -55,7 +54,7 @@ Z2 = (FQ2.one(), FQ2.one(), FQ2.zero())
 
 # Check if a point is the point at infinity
 def is_inf(pt: Optimized_Point3D[Optimized_Field]) -> bool:
-    return pt[-1] == (type(pt[-1]).zero())
+    return pt[-1] == pt[-1].zero()
 
 
 # Check that a point is on the curve defined by y**2 == x**3 + b
@@ -87,7 +86,7 @@ def double(pt: Optimized_Point3D[Optimized_Field]) -> Optimized_Point3D[Optimize
 # Elliptic curve addition
 def add(p1: Optimized_Point3D[Optimized_Field],
         p2: Optimized_Point3D[Optimized_Field]) -> Optimized_Point3D[Optimized_Field]:
-    one, zero = type(p1[0]).one(), type(p1[0]).zero()
+    one, zero = p1[0].one(), p1[0].zero()
     if p1[2] == zero or p2[2] == zero:
         return p1 if p2[2] == zero else p2
     x1, y1, z1 = p1
@@ -116,7 +115,7 @@ def add(p1: Optimized_Point3D[Optimized_Field],
 # Elliptic curve point multiplication
 def multiply(pt: Optimized_Point3D[Optimized_Field], n: int) -> Optimized_Point3D[Optimized_Field]:
     if n == 0:
-        return (type(pt[0]).one(), type(pt[0]).one(), type(pt[0]).zero())
+        return (pt[0].one(), pt[0].one(), pt[0].zero())
     elif n == 1:
         return pt
     elif not n % 2:
@@ -142,15 +141,11 @@ w = FQ12([0, 1] + [0] * 10)
 
 # Convert P => -P
 def neg(pt: Optimized_Point3D[Optimized_Field]) -> Optimized_Point3D[Optimized_Field]:
-    if pt is None:
-        return None
     x, y, z = pt
     return (x, -y, z)
 
 
-def twist(pt: Optimized_Point3D[FQP]) -> Optimized_Point3D[FQP]:
-    if pt is None:
-        return None
+def twist(pt: Optimized_Point3D[FQP]) -> Optimized_Point3D[FQ12]:
     _x, _y, _z = pt
     # Field isomorphism from Z[p] / x**2 to Z[p] / x**2 - 18*x + 82
     xcoeffs = [_x.coeffs[0] - _x.coeffs[1] * 9, _x.coeffs[1]]
@@ -163,5 +158,5 @@ def twist(pt: Optimized_Point3D[FQP]) -> Optimized_Point3D[FQP]:
 
 
 # Check that the twist creates a point that is on the curve
-G12 = twist(cast(Optimized_Point3D[FQ2], G2))
+G12 = twist(G2)
 assert is_on_curve(G12, b12)

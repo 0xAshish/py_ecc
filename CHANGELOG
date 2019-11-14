@@ -1,3 +1,39 @@
+1.7.1
+-----
+
+2019-07-12
+
+* Introduce the `Domain` type as an alias for `bytes` of size 8 in BLS package.
+
+1.7.0
+-----
+
+2019-05-23
+
+* Update hash function for BLS Signatures https://github.com/ethereum/py_ecc/pull/70
+
+1.6.0
+-----
+
+2019-03-14
+
+
+* Add BLS Signature APIs https://github.com/ethereum/py_ecc/pull/52
+* Maintenance: several refactors to reduce duplicated code
+  * https://github.com/ethereum/py_ecc/pull/41
+  * https://github.com/ethereum/py_ecc/pull/61
+  * https://github.com/ethereum/py_ecc/pull/56
+  * https://github.com/ethereum/py_ecc/pull/63
+
+1.4.8
+-----
+
+2019-02-14
+
+* Bugfix Optimized FQP curves to run modulus on integers during initialization
+* Bugfix check against elliptic curve points at infinity
+* Testing tool upgrades
+
 1.4.2
 -----
 

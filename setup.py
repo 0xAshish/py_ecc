@@ -5,11 +5,12 @@ from setuptools import setup, find_packages
 extras_require = {
     'test': [
         "pytest==3.10.1",
-        "pytest-xdist==1.26.0"
+        "pytest-xdist==1.26.0",
     ],
     'lint': [
-        "flake8==3.4.1",
+        "flake8==3.5.0",
         "mypy==0.641",
+        "mypy-extensions>=0.4.1",
     ],
     'dev': [
         "bumpversion>=0.5.3,<1",
@@ -33,7 +34,7 @@ with open('LICENSE') as f:
 setup(
     name='py_ecc',
     # *IMPORTANT*: Don't manually change the version here. Use the 'bumpversion' utility.
-    version='1.4.7',
+    version='1.7.1',
     description='Elliptic curve crypto in python including secp256k1 and alt_bn128',
     long_description=readme,
     long_description_content_type='text/markdown',
@@ -44,6 +45,9 @@ setup(
     packages=find_packages(exclude=('tests', 'docs')),
     package_data={'py_ecc': ['py.typed']},
     install_requires=[
+        "eth-typing>=2.1.0,<3.0.0",
+        "eth-utils>=1.3.0,<2",
+        "mypy-extensions>=0.4.1",
     ],
     python_requires='>=3.5, <4',
     extras_require=extras_require,

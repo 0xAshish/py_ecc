@@ -2,7 +2,30 @@ import time
 
 import pytest
 
-from py_ecc import bn128, optimized_bn128, bls12_381, optimized_bls12_381
+from py_ecc import (
+    bn128,
+    optimized_bn128,
+    bls12_381,
+    optimized_bls12_381,
+)
+
+from py_ecc.fields import (
+    bls12_381_FQ,
+    bls12_381_FQ2,
+    bls12_381_FQ12,
+    bn128_FQ,
+    bn128_FQ2,
+    bn128_FQ12,
+    optimized_bls12_381_FQ,
+    optimized_bls12_381_FQ2,
+    optimized_bls12_381_FQ12,
+    optimized_bn128_FQ,
+    optimized_bn128_FQ2,
+    optimized_bn128_FQ12,
+)
+from py_ecc.fields.field_properties import (
+    field_properties,
+)
 
 
 @pytest.fixture(params=[bn128, optimized_bn128, bls12_381, optimized_bls12_381])
@@ -12,22 +35,55 @@ def lib(request):
 
 @pytest.fixture
 def FQ(lib):
-    return lib.FQ
+    if lib == bn128:
+        return bn128_FQ
+    elif lib == optimized_bn128:
+        return optimized_bn128_FQ
+    elif lib == bls12_381:
+        return bls12_381_FQ
+    elif lib == optimized_bls12_381:
+        return optimized_bls12_381_FQ
+    else:
+        raise Exception("Library Not Found")
 
 
 @pytest.fixture
 def FQ2(lib):
-    return lib.FQ2
+    if lib == bn128:
+        return bn128_FQ2
+    elif lib == optimized_bn128:
+        return optimized_bn128_FQ2
+    elif lib == bls12_381:
+        return bls12_381_FQ2
+    elif lib == optimized_bls12_381:
+        return optimized_bls12_381_FQ2
+    else:
+        raise Exception("Library Not Found")
 
 
 @pytest.fixture
 def FQ12(lib):
-    return lib.FQ12
+    if lib == bn128:
+        return bn128_FQ12
+    elif lib == optimized_bn128:
+        return optimized_bn128_FQ12
+    elif lib == bls12_381:
+        return bls12_381_FQ12
+    elif lib == optimized_bls12_381:
+        return optimized_bls12_381_FQ12
+    else:
+        raise Exception("Library Not Found")
 
 
 @pytest.fixture
 def field_modulus(lib):
-    return lib.field_modulus
+    if lib == bn128 or lib == optimized_bn128:
+        return field_properties["bn128"]["field_modulus"]
+    elif lib == bls12_381 or lib == optimized_bls12_381:
+        return field_properties["bls12_381"]["field_modulus"]
+    else:
+        raise Exception("Library Not Found")
+
 
 @pytest.fixture
 def G1(lib):
@@ -42,6 +98,16 @@ def G2(lib):
 @pytest.fixture
 def G12(lib):
     return lib.G12
+
+
+@pytest.fixture
+def Z1(lib):
+    return lib.Z1
+
+
+@pytest.fixture
+def Z2(lib):
+    return lib.Z2
 
 
 @pytest.fixture
@@ -104,11 +170,17 @@ def neg(lib):
     return lib.neg
 
 
+@pytest.fixture
+def twist(lib):
+    return lib.twist
+
+
 def test_FQ_object(FQ, field_modulus):
     assert FQ(2) * FQ(2) == FQ(4)
     assert FQ(2) / FQ(7) + FQ(9) / FQ(7) == FQ(11) / FQ(7)
     assert FQ(2) * FQ(7) + FQ(9) * FQ(7) == FQ(11) * FQ(7)
     assert FQ(9) ** field_modulus == FQ(9)
+    assert FQ(-1).n > 0
 
 
 def test_FQ2_object(FQ2, field_modulus):
@@ -116,11 +188,18 @@ def test_FQ2_object(FQ2, field_modulus):
     f = FQ2([1, 2])
     fpx = FQ2([2, 2])
     one = FQ2.one()
+    z1, z2 = FQ2([-1, -1]).coeffs
     assert x + f == fpx
     assert f / f == one
     assert one / f + x / f == (one + x) / f
     assert one * f + x * f == (one + x) * f
     assert x ** (field_modulus ** 2 - 1) == one
+    if isinstance(z1, int):
+        assert z1 > 0
+        assert z2 > 0
+    else:
+        assert z1.n > 0
+        assert z2.n > 0
 
 
 def test_FQ12_object(FQ12, field_modulus):
@@ -128,10 +207,15 @@ def test_FQ12_object(FQ12, field_modulus):
     f = FQ12([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
     fpx = FQ12([2, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
     one = FQ12.one()
+    zs = FQ12([-1]*12).coeffs
     assert x + f == fpx
     assert f / f == one
     assert one / f + x / f == (one + x) / f
     assert one * f + x * f == (one + x) * f
+    if isinstance(zs[0], int):
+        assert all(z > 0 for z in zs)
+    else:
+        assert all(z.n > 0 for z in zs)
     # This check takes too long
     # assert x ** (field_modulus ** 12 - 1) == one
 
@@ -158,6 +242,36 @@ def test_G12_object(G12, b12, eq, add, double, multiply, is_on_curve, is_inf, cu
     assert eq(add(multiply(G12, 9), multiply(G12, 5)), add(multiply(G12, 12), multiply(G12, 2)))
     assert is_on_curve(multiply(G12, 9), b12)
     assert is_inf(multiply(G12, curve_order))
+
+
+def test_Z1_object(add, eq, double, FQ, G1, is_inf, multiply, neg, twist, Z1):
+    assert eq(G1, add(G1, Z1))
+    assert eq(Z1, double(Z1))
+    assert eq(Z1, multiply(Z1, 0))
+    assert eq(Z1, multiply(Z1, 1))
+    assert eq(Z1, multiply(Z1, 2))
+    assert eq(Z1, multiply(Z1, 3))
+    assert is_inf(neg(Z1))
+
+
+def test_Z2_object(add, eq, double, FQ2, G2, is_inf, multiply, neg, twist, Z2):
+    assert eq(G2, add(G2, Z2))
+    assert eq(Z2, double(Z2))
+    assert eq(Z2, multiply(Z2, 0))
+    assert eq(Z2, multiply(Z2, 1))
+    assert eq(Z2, multiply(Z2, 2))
+    assert eq(Z2, multiply(Z2, 3))
+    assert is_inf(neg(Z2))
+    assert is_inf(twist(Z2))
+
+
+def test_none_point(lib, neg, twist):
+    if lib not in [optimized_bn128, optimized_bls12_381]:
+        pytest.skip()
+    with pytest.raises(Exception):
+        neg(None)
+    with pytest.raises(Exception):
+        twist(None)
 
 
 def test_pairing_negative_G1(pairing, G1, G2, FQ12, curve_order, multiply, neg):
